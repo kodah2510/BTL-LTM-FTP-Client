@@ -16,7 +16,7 @@ bool Login(SOCKET controlConnectSocket)
 	return true;
 
 }
-void Display() 
+void Display(SOCKET controlConnectSocket) 
 {
 
 }
