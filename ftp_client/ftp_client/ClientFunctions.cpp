@@ -16,9 +16,11 @@ bool Login(SOCKET controlConnectSocket)
 	return true;
 
 }
-void Display() 
+void Display(SOCKET controlConnectSocket) 
 {
-
+	char buffer[512];
+	int recvBytes;
+	recvBytes = recv(controlConnectSocket,buffer,512,0);
 }
 void Download() 
 {
