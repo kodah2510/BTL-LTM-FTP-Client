@@ -3,7 +3,7 @@
 #include<winsock.h>
 
 bool Login(SOCKET controlConnectSocket);
-void Display();
+int Display(SOCKET controlConnectSocket,SOCKET dataSocket);
 void Download();
 void Upload();
 void Rename();

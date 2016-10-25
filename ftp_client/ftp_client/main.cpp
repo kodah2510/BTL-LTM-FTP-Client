@@ -9,11 +9,12 @@
 #include"ClientFunctions.h"
 
 SOCKET controlConnectSocket;
+SOCKET dataSocket;
 
 
 int main(int argc, char* argv[])
 {
-	if (!InitializeConnection(controlConnectSocket))
+	if (!InitializeConnection(controlConnectSocket,dataSocket))
 	{
 		getch();
 		return 1;
@@ -29,30 +30,28 @@ int main(int argc, char* argv[])
 				"5.Remove\n"
 				"6.Quit\n");
 		scanf("%d", &option);
-		if (isdigit(option) && (option < 7 && option > 0))
+		switch (option)
 		{
-			switch (option)
-			{
-			case 1:
-				Display();
-				break;
-			case 2:
-				Download();
-				break;
-			case 3:
-				Upload();
-				break;
-			case 4:
-				Rename();
-				break;
-			case 5:
-				Remove();
-				break;
-			default:
-				break;
-			}
+		case 1:
+			Display(controlConnectSocket, dataSocket);
+			break;
+		case 2:
+			Download();
+			break;
+		case 3:
+			Upload();
+			break;
+		case 4:
+			Rename();
+			break;
+		case 5:
+			Remove();
+			break;
+		default:
+			break;
 		}
 	} while (option != 6);
 
 	CloseConnection(controlConnectSocket);
+	return 0;
 }
