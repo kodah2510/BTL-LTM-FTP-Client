@@ -2,7 +2,7 @@
 #include<WinSock2.h>
 #include"ClientFunctions.h"
 
-bool Login(SOCKET controlConnectSocket)
+bool Login(SOCKET* controlConnectSocket)
 {
 	char username[30];
 	char password[30];
@@ -20,9 +20,9 @@ bool Login(SOCKET controlConnectSocket)
 		strcat(userCommand, username);
 		strcat(userCommand, "\n");
 
-		send(controlConnectSocket, userCommand, strlen(userCommand), 0);
+		send(*controlConnectSocket, userCommand, strlen(userCommand), 0);
 
-		recvBytes = recv(controlConnectSocket, recvBuffer, 512, 0);
+		recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
 		if (recvBytes > 0)
 		{
 			recvBuffer[recvBytes] = '\0';
@@ -35,9 +35,9 @@ bool Login(SOCKET controlConnectSocket)
 				strcat(passCommand, password);
 				strcat(passCommand, "\n");
 
-				send(controlConnectSocket, passCommand, strlen(passCommand), 0);
+				send(*controlConnectSocket, passCommand, strlen(passCommand), 0);
 
-				recvBytes = recv(controlConnectSocket, recvBuffer, 512, 0);
+				recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
 				if (recvBytes > 0)
 				{
 					recvBuffer[recvBytes] = '\0';
@@ -55,31 +55,34 @@ bool Login(SOCKET controlConnectSocket)
 	}
 	return true;
 }
-int GetPortNumber(char recvBuffer[30])
+int GetPortNumber(char recvBuffer[100])
 {
+	//227 entering passive mode (h1,h2,h3,h4,p1,p2)
+	char address[30];
+	int result[6];
 	char* ptr;
-	int result[6];// luu ket qua tra ve tu lenh pasv cua server 
-	ptr = strtok(recvBuffer, ",");
+	memcpy(address, recvBuffer, strlen(recvBuffer) - 27);
+
+	ptr = strtok(address, ",)");
 
 	for (int i = 0; i < 6; i++)
 	{
 		result[i] = atoi(ptr);
-		ptr = strtok(NULL, ",");
+		ptr = strtok(NULL, ",)");
 	}
-
-	return result[4] * 256 + result[5];// port =  p1*256 + p2
+	return result[4] * 256 + result[5];// dataport = p1*256 + p2
 }
-int Display(SOCKET controlConnectSocket,SOCKET dataSocket)
+int Display(SOCKET* controlConnectSocket,SOCKET* dataSocket)
 {
 	char pasvCommand[5];
 	char listCommand[10];
-	char recvBuffer[30];
+	char recvBuffer[100];
 	int recvBytes;
 	
-	strcpy(pasvCommand, "PASV\n");
-	send(controlConnectSocket, pasvCommand, 5, 0);
+	strcpy(pasvCommand, "pasv");
+	send(*controlConnectSocket, pasvCommand, 5, 0);
 
-	recvBytes = recv(controlConnectSocket, recvBuffer, 30, 0);
+	recvBytes = recv(*controlConnectSocket, recvBuffer, 30, 0);
 	recvBuffer[recvBytes] = '\0';
 
 	int dataPort = GetPortNumber(recvBuffer);
@@ -88,23 +91,23 @@ int Display(SOCKET controlConnectSocket,SOCKET dataSocket)
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_port = htons(dataPort);
 	serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-	if (connect(dataSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)))
+	if (connect(*dataSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)))
 	{
 		printf("cannot establish data channel, error : %d\n", GetLastError());
 		return 1;
 	}
 
 	strcpy(listCommand, "LIST\n");
-	send(controlConnectSocket, listCommand, strlen(listCommand), 0);
+	send(*controlConnectSocket, listCommand, strlen(listCommand), 0);
 
 	char dataBuffer[512];
-	recvBytes = recv(dataSocket, dataBuffer, 512, 0);
+	recvBytes = recv(*dataSocket, dataBuffer, 512, 0);
 	dataBuffer[recvBytes] = '\0';
 
 	system("cls");
 	printf("%s\n", dataBuffer);
-	closesocket(dataSocket);
-	shutdown(dataSocket, SD_RECEIVE);
+	closesocket(*dataSocket);
+	shutdown(*dataSocket, SD_RECEIVE);
 	return 0;
 }
 void Download() 

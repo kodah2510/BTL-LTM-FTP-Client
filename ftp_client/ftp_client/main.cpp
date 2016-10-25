@@ -14,7 +14,7 @@ SOCKET dataSocket;
 
 int main(int argc, char* argv[])
 {
-	if (!InitializeConnection(controlConnectSocket,dataSocket))
+	if (!InitializeConnection(&controlConnectSocket,&dataSocket))
 	{
 		getch();
 		return 1;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 		switch (option)
 		{
 		case 1:
-			Display(controlConnectSocket, dataSocket);
+			Display(&controlConnectSocket, &dataSocket);
 			break;
 		case 2:
 			Download();
