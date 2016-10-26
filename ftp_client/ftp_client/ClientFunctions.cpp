@@ -55,6 +55,31 @@ bool Login(SOCKET* controlConnectSocket)
 	}
 	return true;
 }
+void EstablishDataChannel(SOCKET* controlConnectSocket,SOCKET* dataSocket)
+{
+	char pasvCommand[4];
+	char recvBuffer[200];
+	int recvBytes;
+
+	strcpy(pasvCommand, "pasv");
+	send(*controlConnectSocket, pasvCommand, 5, 0);
+
+	recvBytes = recv(*controlConnectSocket, recvBuffer, 200, 0);
+	recvBuffer[recvBytes] = '\0';
+
+	int dataPort = GetPortNumber(recvBuffer);
+
+	SOCKADDR_IN serverAddress;//dia chi server voi dataport
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_port = htons(dataPort);
+	serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+	if (connect(*dataSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)))
+	{
+		printf("cannot establish data channel, error : %d\n", GetLastError());
+		return;
+	}
+
+}
 int GetPortNumber(char recvBuffer[200])
 {
 	//227 entering passive mode (h1,h2,h3,h4,p1,p2)
@@ -81,23 +106,24 @@ int Display(SOCKET* controlConnectSocket,SOCKET* dataSocket)
 	char recvBuffer[200];
 	int recvBytes;
 	
-	strcpy(pasvCommand, "pasv");
-	send(*controlConnectSocket, pasvCommand, 5, 0);
+	//strcpy(pasvCommand, "pasv");
+	//send(*controlConnectSocket, pasvCommand, 5, 0);
 
-	recvBytes = recv(*controlConnectSocket, recvBuffer, 200, 0);
-	recvBuffer[recvBytes] = '\0';
+	//recvBytes = recv(*controlConnectSocket, recvBuffer, 200, 0);
+	//recvBuffer[recvBytes] = '\0';
 
-	int dataPort = GetPortNumber(recvBuffer);
+	//int dataPort = GetPortNumber(recvBuffer);
 
-	SOCKADDR_IN serverAddress;//dia chi server voi dataport
-	serverAddress.sin_family = AF_INET;
-	serverAddress.sin_port = htons(dataPort);
-	serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-	if (connect(*dataSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)))
-	{
-		printf("cannot establish data channel, error : %d\n", GetLastError());
-		return 1;
-	}
+	//SOCKADDR_IN serverAddress;//dia chi server voi dataport
+	//serverAddress.sin_family = AF_INET;
+	//serverAddress.sin_port = htons(dataPort);
+	//serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+	//if (connect(*dataSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)))
+	//{
+	//	printf("cannot establish data channel, error : %d\n", GetLastError());
+	//	return 1;
+	//}
+	EstablishDataChannel(controlConnectSocket, dataSocket);
 
 	strcpy(listCommand, "LIST\n");
 	send(*controlConnectSocket, listCommand, strlen(listCommand), 0);
