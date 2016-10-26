@@ -3,8 +3,8 @@
 #include<winsock.h>
 
 bool Login(SOCKET* controlConnectSocket);
-int Display(SOCKET* controlConnectSocket,SOCKET* dataSocket);
+void Display(SOCKET* controlConnectSocket);
 void Download();
 void Upload();
-void Rename();
-void Remove();
+void Rename(SOCKET* controlConnectSocket);
+void Remove(SOCKET* controlConnectSocket);

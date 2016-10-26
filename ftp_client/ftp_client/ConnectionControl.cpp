@@ -1,7 +1,7 @@
 #include"ConnectionControl.h"
 #include"ClientFunctions.h"
 
-bool InitializeConnection(SOCKET* controlConnectSocket,SOCKET* dataSocket)
+bool InitializeConnection(SOCKET* controlConnectSocket)
 {
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData))
@@ -11,7 +11,6 @@ bool InitializeConnection(SOCKET* controlConnectSocket,SOCKET* dataSocket)
 	}
 
 	*controlConnectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	*dataSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	SOCKADDR_IN serverAddress;
 	serverAddress.sin_family = AF_INET;

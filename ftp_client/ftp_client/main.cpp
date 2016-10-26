@@ -9,12 +9,11 @@
 #include"ClientFunctions.h"
 
 SOCKET controlConnectSocket;
-SOCKET dataSocket;
 
 
 int main(int argc, char* argv[])
 {
-	if (!InitializeConnection(&controlConnectSocket,&dataSocket))
+	if (!InitializeConnection(&controlConnectSocket))
 	{
 		getch();
 		return 1;
@@ -29,11 +28,12 @@ int main(int argc, char* argv[])
 				"4.Rename\n"
 				"5.Remove\n"
 				"6.Quit\n");
+		fflush(stdin);
 		scanf("%d", &option);
 		switch (option)
 		{
 		case 1:
-			Display(&controlConnectSocket, &dataSocket);
+			Display(&controlConnectSocket);
 			break;
 		case 2:
 			Download();
@@ -42,10 +42,10 @@ int main(int argc, char* argv[])
 			Upload();
 			break;
 		case 4:
-			Rename();
+			Rename(&controlConnectSocket);
 			break;
 		case 5:
-			Remove();
+			Remove(&controlConnectSocket);
 			break;
 		default:
 			break;
