@@ -55,13 +55,15 @@ bool Login(SOCKET* controlConnectSocket)
 	}
 	return true;
 }
-int GetPortNumber(char recvBuffer[100])
+int GetPortNumber(char recvBuffer[200])
 {
 	//227 entering passive mode (h1,h2,h3,h4,p1,p2)
-	char address[30];
-	int result[6];
+	
+	char* address;
 	char* ptr;
-	memcpy(address, recvBuffer, strlen(recvBuffer) - 27);
+	int result[6];
+
+	address = &recvBuffer[27];
 
 	ptr = strtok(address, ",)");
 
@@ -76,13 +78,13 @@ int Display(SOCKET* controlConnectSocket,SOCKET* dataSocket)
 {
 	char pasvCommand[5];
 	char listCommand[10];
-	char recvBuffer[100];
+	char recvBuffer[200];
 	int recvBytes;
 	
 	strcpy(pasvCommand, "pasv");
 	send(*controlConnectSocket, pasvCommand, 5, 0);
 
-	recvBytes = recv(*controlConnectSocket, recvBuffer, 30, 0);
+	recvBytes = recv(*controlConnectSocket, recvBuffer, 200, 0);
 	recvBuffer[recvBytes] = '\0';
 
 	int dataPort = GetPortNumber(recvBuffer);
@@ -100,8 +102,8 @@ int Display(SOCKET* controlConnectSocket,SOCKET* dataSocket)
 	strcpy(listCommand, "LIST\n");
 	send(*controlConnectSocket, listCommand, strlen(listCommand), 0);
 
-	char dataBuffer[512];
-	recvBytes = recv(*dataSocket, dataBuffer, 512, 0);
+	char dataBuffer[2048];
+	recvBytes = recv(*dataSocket, dataBuffer, 2048, 0);
 	dataBuffer[recvBytes] = '\0';
 
 	system("cls");
