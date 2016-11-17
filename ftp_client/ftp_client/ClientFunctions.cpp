@@ -16,9 +16,8 @@ bool Login(SOCKET* controlConnectSocket)
 		printf("Username: ");
 		scanf("%s", &username);
 
-		strcpy(userCommand, "user ");
-		strcat(userCommand, username);
-		strcat(userCommand, "\n");
+		//USER username
+		sprintf(userCommand, "USER %s\n", username);
 
 		send(*controlConnectSocket, userCommand, strlen(userCommand), 0);
 
@@ -26,7 +25,8 @@ bool Login(SOCKET* controlConnectSocket)
 		if (recvBytes > 0)
 		{
 			recvBuffer[recvBytes] = '\0';
-			if (strncmp(recvBuffer, "331", 3)==0)// hoan thanh lenh USER <username>
+			// hoan thanh lenh USER <username>
+			if (strncmp(recvBuffer, "331", 3)==0)
 			{
 				printf("Password: ");
 				scanf("%s", &password);
@@ -43,7 +43,8 @@ bool Login(SOCKET* controlConnectSocket)
 					recvBuffer[recvBytes] = '\0';
 					if (strncmp(recvBuffer, "230", 3)==0)
 					{
-						break;//--> dang nhap thanh cong
+						//--> dang nhap thanh cong
+						break;
 					}
 					else
 					{
@@ -58,7 +59,6 @@ bool Login(SOCKET* controlConnectSocket)
 int GetPortNumber(char recvBuffer[200])
 {
 	//227 entering passive mode (h1,h2,h3,h4,p1,p2)
-
 	char* address;
 	char* ptr;
 	int result[6];
@@ -73,9 +73,8 @@ int GetPortNumber(char recvBuffer[200])
 		ptr = strtok(NULL, ",)");
 	}
 	port = result[4] * 256 + result[5];
-
-
-	return port;// dataport = p1*256 + p2
+	// dataport = p1*256 + p2
+	return port;
 }
 bool EstablishDataChannel(SOCKET* controlConnectSocket,SOCKET dataSocket)
 {
@@ -119,7 +118,8 @@ void Display(SOCKET* controlConnectSocket)
 
 	SOCKET dataSocket;
 	dataSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
+	//
+	//Mo kenh data 
 	EstablishDataChannel(controlConnectSocket,dataSocket);
 	strcpy(listCommand, "LIST\n");
 	send(*controlConnectSocket, listCommand, strlen(listCommand), 0);
@@ -128,15 +128,126 @@ void Display(SOCKET* controlConnectSocket)
 	recvBytes = recv(dataSocket, dataBuffer, 2048, 0);
 	dataBuffer[recvBytes] = '\0';
 	system("cls");
+
 	printf("%s\n", dataBuffer);
+	closesocket(dataSocket);
 }
-void Download() 
+void RegularDownload(SOCKET* controlConnectSocket)
+{
+	char* filename;
+	char retrCommand[100];
+	char recvBuffer[4096];
+	int recvBytes;
+	FILE* file;
+	Display(controlConnectSocket);
+	printf("Type the file's name you want to download: ", &filename);
+
+	SOCKET dataSocket;
+	dataSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	EstablishDataChannel(controlConnectSocket, dataSocket);
+
+	//RETR <filename>
+	strcpy(retrCommand, "RETR ");
+	strcat(retrCommand, filename);
+	strcat(retrCommand, "\n");
+
+	send(*controlConnectSocket, retrCommand, strlen(retrCommand), 0);
+
+	//can phai lay them byte size de cap phat dong cho recvBuffer
+	recvBytes = recv(dataSocket, recvBuffer, 4096, 0);
+
+	file = fopen(filename, "wb");
+	if (file == NULL)
+	{
+		printf("Error creating file\n");
+		return;
+	}
+	else
+	{
+		fprintf(file, "%d", recvBuffer);
+	}
+	fclose(file);
+	printf("File downloaded !\n");
+	closesocket(dataSocket);
+}
+void MultiConnectsDownload(SOCKET* controlConnectSocket)
 {
 
 }
-void Upload() 
+void Download(SOCKET* controlConnectSocket) 
 {
+	//hien thi cac tep trong thu muc cua server
+	//yeu cau nguoi dung go ten tep 
 
+	//
+	//thiet lap kenh truyen 
+	//
+	//luu tep vao thu muc chua chuong trinh 
+	char option;
+	do 
+	{
+		printf(	"Select download method\n"
+				"1.Regular download\n"
+				"2.Multi-connects download\n");
+		scanf("%c", &option);
+	} while (option < 1|| option > 2);
+	switch (option)
+	{
+		case 1:
+			RegularDownload(controlConnectSocket);
+			break;
+		case 2:
+			MultiConnectsDownload(controlConnectSocket);
+			break;
+	}
+}
+void Upload(SOCKET* controlConnectSocket) 
+{
+	//Hien thi cac tep cua nguoi dung 
+	//yeu cau nguoi dung go ten tep 
+	//thiet lap kenh truyen 
+	//tai len server
+	//nhan thong diep thao tac tu server
+	char* filename;
+	char storCommand[100];
+	char recvByte[100];
+	char sendBuffer[1024];
+	int recvBytes;
+	int filesize;
+	int sentBytes = 0;
+
+	//liet ke danh sach file trong tep cua nguoi dung
+	system("cd data");
+	system("dir");
+	printf("Type the file's name you want to upload\n");
+	scanf("%s", &filename);
+
+	FILE* uploadFile;
+	uploadFile = fopen(filename, "rb");
+	//tim filesize
+	fseek(uploadFile, 0L, SEEK_END);
+	filesize = ftell(uploadFile);
+	rewind(uploadFile);
+	//mo datasocket
+	SOCKET dataSocket;
+	dataSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	EstablishDataChannel(controlConnectSocket, dataSocket);
+	//gui lenh
+	//STOR <filename>
+	sprintf(storCommand, "STOR %s\n", filename);
+	while (sentBytes < filesize)
+	{
+		int read = fread(sendBuffer, 1, 1024, uploadFile);
+		if (read < 0)
+		{
+			break;
+		}
+		send(dataSocket, sendBuffer, 1024, 0);
+		sentBytes += 1024;
+	}
+	fclose(uploadFile);
+	closesocket(dataSocket);
 }
 void Rename(SOCKET* controlConnectSocket) 
 {
@@ -156,17 +267,14 @@ void Rename(SOCKET* controlConnectSocket)
 	scanf("%s", &newName);
 
 	//RNFR <filename>
-	strcpy(rnfrCommand, "rnfr ");
-	strcat(rnfrCommand, oldName);
-	strcat(rnfrCommand, "\n");
+	sprintf(rnfrCommand, "RNFR %s\n", oldName);
 	//RNTO <filename>
-	strcat(rntoCommand, "rnto ");
-	strcat(rntoCommand, newName);
-	strcat(rntoCommand, "\n");
+	sprintf(rntoCommand, "RNTO %s\n", newName);
 
 	send(*controlConnectSocket, rnfrCommand, strlen(rnfrCommand), 0);
 	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
 	recvBuffer[recvBytes] = '\0';
+	//nhan ket qua tra ve tu server
 	if (strncmp(recvBuffer, " ", 3) == 0)
 	{
 
@@ -190,14 +298,12 @@ void Remove(SOCKET* controlConnectSocket)
 	scanf("%s", &filename);
 
 	//DELE <filename>
-	strcpy(deleteCommand, "dele ");
-	strcat(deleteCommand, filename);
-	strcat(deleteCommand, "\n");
+	sprintf(deleteCommand, "DELE %s\n", filename);
 
 	send(*controlConnectSocket, deleteCommand, strlen(deleteCommand), 0);
 	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
 	recvBuffer[recvBytes] = '\0';
-
+	//nhan ket qua tu server 
 	if (strncmp(recvBuffer, "", 3) == 0)
 	{
 
