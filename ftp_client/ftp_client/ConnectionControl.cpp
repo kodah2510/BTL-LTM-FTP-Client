@@ -9,7 +9,7 @@ bool InitializeConnection(SOCKET* controlConnectSocket)
 		printf("WSAStartup error %d\n", GetLastError());
 		return false;
 	}
-
+	//socket dieu khien ket noi
 	*controlConnectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	SOCKADDR_IN serverAddress;
@@ -27,14 +27,8 @@ bool InitializeConnection(SOCKET* controlConnectSocket)
 	else
 	{
 		printf("Cannot connect to server!\n");
-	}
-
-	if (!Login(controlConnectSocket))
-	{
-		printf("Fail to login!\n");
 		return false;
 	}
-	printf("Logged On\n");
 	return true;
 }
 void CloseConnection(SOCKET controlConnectSocket)

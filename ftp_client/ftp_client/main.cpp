@@ -18,7 +18,9 @@ int main(int argc, char* argv[])
 		getch();
 		return 1;
 	}
-	char option;
+	while(!Login(&controlConnectSocket));
+
+	int option;
 	do
 	{
 		printf("select from 1 to 6\n");
@@ -36,10 +38,10 @@ int main(int argc, char* argv[])
 			Display(&controlConnectSocket);
 			break;
 		case 2:
-			Download();
+			Download(&controlConnectSocket);
 			break;
 		case 3:
-			Upload();
+			Upload(&controlConnectSocket);
 			break;
 		case 4:
 			Rename(&controlConnectSocket);

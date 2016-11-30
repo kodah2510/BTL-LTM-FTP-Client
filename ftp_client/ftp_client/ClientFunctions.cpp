@@ -1,7 +1,7 @@
 #include<cstdlib>
 #include<WinSock2.h>
 #include"ClientFunctions.h"
-
+//421 connection time out chua xu ly 
 bool Login(SOCKET* controlConnectSocket)
 {
 	char username[30];
@@ -31,9 +31,7 @@ bool Login(SOCKET* controlConnectSocket)
 				printf("Password: ");
 				scanf("%s", &password);
 
-				strcpy(passCommand, "pass ");
-				strcat(passCommand, password);
-				strcat(passCommand, "\n");
+				sprintf(passCommand, "PASS %s\n", password);
 
 				send(*controlConnectSocket, passCommand, strlen(passCommand), 0);
 
@@ -44,17 +42,18 @@ bool Login(SOCKET* controlConnectSocket)
 					if (strncmp(recvBuffer, "230", 3)==0)
 					{
 						//--> dang nhap thanh cong
-						break;
+						printf("Logged On!\n");
+						return true;
 					}
 					else
 					{
+						printf("Log in failed, check your username and password\n");
 						return false;
 					}
 				}
 			}
 		}
 	}
-	return true;
 }
 int GetPortNumber(char recvBuffer[200])
 {
@@ -112,7 +111,7 @@ void Display(SOCKET* controlConnectSocket)
 {
 	char pasvCommand[5];
 	char listCommand[10];
-	char recvBuffer[200];
+	char recvBuffer[512];
 	char dataBuffer[2048];
 	int recvBytes;
 
@@ -123,11 +122,11 @@ void Display(SOCKET* controlConnectSocket)
 	EstablishDataChannel(controlConnectSocket,dataSocket);
 	strcpy(listCommand, "LIST\n");
 	send(*controlConnectSocket, listCommand, strlen(listCommand), 0);
-
-	recvBytes = recv(*controlConnectSocket, recvBuffer, 200, 0);
+	
+	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
+	
 	recvBytes = recv(dataSocket, dataBuffer, 2048, 0);
 	dataBuffer[recvBytes] = '\0';
-	system("cls");
 
 	printf("%s\n", dataBuffer);
 	closesocket(dataSocket);
@@ -202,14 +201,15 @@ void Download(SOCKET* controlConnectSocket)
 			break;
 	}
 }
-void Upload(SOCKET* controlConnectSocket) 
+void Upload(SOCKET* controlConnectSocket)
 {
 	//Hien thi cac tep cua nguoi dung 
 	//yeu cau nguoi dung go ten tep 
 	//thiet lap kenh truyen 
 	//tai len server
 	//nhan thong diep thao tac tu server
-	char* filename;
+	char filename[512];
+	char userInput[100];
 	char storCommand[100];
 	char recvByte[100];
 	char sendBuffer[1024];
@@ -218,13 +218,21 @@ void Upload(SOCKET* controlConnectSocket)
 	int sentBytes = 0;
 
 	//liet ke danh sach file trong tep cua nguoi dung
+	fflush(stdin);
 	system("cd data");
-	system("dir");
+	system("dir \data");
 	printf("Type the file's name you want to upload\n");
-	scanf("%s", &filename);
+	scanf("%s",filename);
+	//sprintf(filename, "\data\%s", userInput);
 
 	FILE* uploadFile;
 	uploadFile = fopen(filename, "rb");
+	if (uploadFile == NULL)
+	{
+		printf("Cannot find the file path\n");
+		return;
+	}
+
 	//tim filesize
 	fseek(uploadFile, 0L, SEEK_END);
 	filesize = ftell(uploadFile);
@@ -258,32 +266,39 @@ void Rename(SOCKET* controlConnectSocket)
 
 	char recvBuffer[512];
 	int recvBytes;
-	
 	system("cls");
+	Display(controlConnectSocket);
+
 	printf("Type a filename you want to rename \n");
 	scanf("%s", &oldName);
 
-	printf("Type a new filename: \n");
-	scanf("%s", &newName);
-
 	//RNFR <filename>
 	sprintf(rnfrCommand, "RNFR %s\n", oldName);
-	//RNTO <filename>
-	sprintf(rntoCommand, "RNTO %s\n", newName);
 
+	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);//---> doan nay la chua loi server gui 2 dong 226, 350
+
+	//gui ten file muon doi ten len server
 	send(*controlConnectSocket, rnfrCommand, strlen(rnfrCommand), 0);
 	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
 	recvBuffer[recvBytes] = '\0';
 	//nhan ket qua tra ve tu server
-	if (strncmp(recvBuffer, " ", 3) == 0)
+	if (strncmp(recvBuffer, "350", 3) == 0)//success
 	{
+		printf("Type a new filename: \n");
+		scanf("%s", &newName);
 
+		//RNTO <filename>
+		sprintf(rntoCommand, "RNTO %s\n", newName);
+		//gui ten moi 
+		send(*controlConnectSocket, rntoCommand, strlen(rntoCommand), 0);
+		recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
+
+		printf("Renaming file succeeded\n");
 	}
-
-	send(*controlConnectSocket, rntoCommand, strlen(rntoCommand), 0);
-	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
-
-	printf("Renaming file succeeded\n");
+	else if (strncmp(recvBuffer, "550", 3) == 0)
+	{
+		printf("File not found\n");
+	}
 
 }
 void Remove(SOCKET* controlConnectSocket) 
@@ -304,10 +319,18 @@ void Remove(SOCKET* controlConnectSocket)
 	recvBytes = recv(*controlConnectSocket, recvBuffer, 512, 0);
 	recvBuffer[recvBytes] = '\0';
 	//nhan ket qua tu server 
-	if (strncmp(recvBuffer, "", 3) == 0)
+	if (strncmp(recvBuffer, "250", 3) == 0)
 	{
-
+		printf("Deleting file succeeded\n");
+		return;
 	}
-	printf("Deleting file succeeded\n");
-
+	else if (strncmp(recvBuffer, "550", 3) == 0)
+	{
+		printf("File not founnd!\n");
+		return;
+	}
+	else
+	{
+		return;
+	}
 }

@@ -4,7 +4,7 @@
 
 bool Login(SOCKET* controlConnectSocket);
 void Display(SOCKET* controlConnectSocket);
-void Download();
-void Upload();
+void Download(SOCKET* controlConnectSocket);
+void Upload(SOCKET* controlConnectSocket);
 void Rename(SOCKET* controlConnectSocket);
 void Remove(SOCKET* controlConnectSocket);
