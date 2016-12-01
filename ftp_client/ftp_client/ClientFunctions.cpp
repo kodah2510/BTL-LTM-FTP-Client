@@ -133,41 +133,52 @@ void Display(SOCKET* controlConnectSocket)
 }
 void RegularDownload(SOCKET* controlConnectSocket)
 {
-	char* filename;
+	char filename[100];
 	char retrCommand[100];
-	char recvBuffer[4096];
+	char sizeCommand[100];
+	char recvBuffer[1024];
 	int recvBytes;
+	int ret;
+	int filesize;
 	FILE* file;
+
 	Display(controlConnectSocket);
-	printf("Type the file's name you want to download: ", &filename);
+
+	printf("Type the file's name you want to download: ");
+	scanf("%s", filename);
+	recv(*controlConnectSocket, recvBuffer, 1024, 0);//--> xu ly bug 2 dong 
+
+	sprintf(sizeCommand, "SIZE %s\n", filename);
+	send(*controlConnectSocket, sizeCommand, strlen(sizeCommand), 0);
+
+	recvBytes = recv(*controlConnectSocket, recvBuffer, 1024, 0);
+	recvBuffer[recvBytes] = '\0';
+
+	sscanf(recvBuffer, "%d %d", &ret, &filesize);
 
 	SOCKET dataSocket;
 	dataSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-	EstablishDataChannel(controlConnectSocket, dataSocket);
-
-	//RETR <filename>
-	strcpy(retrCommand, "RETR ");
-	strcat(retrCommand, filename);
-	strcat(retrCommand, "\n");
-
-	send(*controlConnectSocket, retrCommand, strlen(retrCommand), 0);
-
-	//can phai lay them byte size de cap phat dong cho recvBuffer
-	recvBytes = recv(dataSocket, recvBuffer, 4096, 0);
-
-	file = fopen(filename, "wb");
-	if (file == NULL)
+	if (!EstablishDataChannel(controlConnectSocket, dataSocket))
 	{
-		printf("Error creating file\n");
 		return;
 	}
-	else
+
+	//RETR <filename>
+	sprintf(retrCommand, "RETR %s\n", filename);
+	send(*controlConnectSocket, retrCommand, strlen(retrCommand), 0);
+
+	recvBytes = 0;
+	FILE* downloadFile;
+	downloadFile = fopen(filename, "wb");
+	memcpy(recvBuffer, "", 1024);
+	printf("Downloading...\n");
+	while (recvBytes < filesize)
 	{
-		fprintf(file, "%d", recvBuffer);
+		recvBytes += recv(dataSocket, recvBuffer, 1024, 0);
+		fwrite(recvBuffer, 1, sizeof(recvBuffer), downloadFile);
 	}
-	fclose(file);
-	printf("File downloaded !\n");
+	printf("Download completed\n");
+	fclose(downloadFile);
 	closesocket(dataSocket);
 }
 void MultiConnectsDownload(SOCKET* controlConnectSocket)
@@ -183,13 +194,13 @@ void Download(SOCKET* controlConnectSocket)
 	//thiet lap kenh truyen 
 	//
 	//luu tep vao thu muc chua chuong trinh 
-	char option;
+	int option;
 	do 
 	{
 		printf(	"Select download method\n"
 				"1.Regular download\n"
 				"2.Multi-connects download\n");
-		scanf("%c", &option);
+		scanf("%d", &option);
 	} while (option < 1|| option > 2);
 	switch (option)
 	{
@@ -219,12 +230,11 @@ void Upload(SOCKET* controlConnectSocket)
 
 	//liet ke danh sach file trong tep cua nguoi dung
 	fflush(stdin);
-	system("cd data");
-	system("dir \data");
+	system("dir .\\data");
 	printf("Type the file's name you want to upload\n");
 	scanf("%s",filename);
 	//sprintf(filename, "\data\%s", userInput);
-
+	sprintf(filename, "C:\\Users\\Administrator\\Documents\\Visual Studio 2015\\Projects\\BTL_ftp_client\\trunk\\ftp_client\\ftp_client\\data\\%s", filename);
 	FILE* uploadFile;
 	uploadFile = fopen(filename, "rb");
 	if (uploadFile == NULL)
@@ -244,6 +254,8 @@ void Upload(SOCKET* controlConnectSocket)
 	//gui lenh
 	//STOR <filename>
 	sprintf(storCommand, "STOR %s\n", filename);
+	send(*controlConnectSocket, storCommand, strlen(storCommand), 0);
+	printf("Uploading...\n");
 	while (sentBytes < filesize)
 	{
 		int read = fread(sendBuffer, 1, 1024, uploadFile);
@@ -254,6 +266,7 @@ void Upload(SOCKET* controlConnectSocket)
 		send(dataSocket, sendBuffer, 1024, 0);
 		sentBytes += 1024;
 	}
+	printf("Uploading finished\n");
 	fclose(uploadFile);
 	closesocket(dataSocket);
 }
